@@ -1,10 +1,13 @@
 const http = require('http');
 
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0'; // Essential for container network binding
+
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html' });
-  res.end('<h1>Frontend is live on Zerops!</h1>');
+  res.end('<h1>Application is Live on Zerops!</h1>');
 });
 
-server.listen(3000, () => {
-  console.log('Frontend listening on port 3000');
+server.listen(PORT, HOST, () => {
+  console.log(`Server listening on http://${HOST}:${PORT}`);
 });
