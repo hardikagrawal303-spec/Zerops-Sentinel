@@ -3,10 +3,10 @@ zerops:
     build:
       base: nodejs@22
       deployFiles:
-        - server.js
+        - frontend/server.js
     run:
       base: nodejs@22
       ports:
         - port: 3000
           httpSupport: true
-      start: node server.js
+      start: node frontend/server.js
