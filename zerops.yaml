@@ -2,49 +2,23 @@ zerops:
   - setup: frontend
     build:
       base: nodejs@22
-      buildCommands:
-        - cd frontend
-        - npm install
-        - npm run build
       deployFiles:
-        - frontend/.next
-        - frontend/public
-        - frontend/package.json
-        - frontend/next.config.mjs
-        - node_modules
+        - frontend
     run:
       base: nodejs@22
       ports:
         - port: 3000
           httpSupport: true
-      envVariables:
-        PORT: "3000"
-        NODE_ENV: "production"
-        NEXT_PUBLIC_API_URL: "http://api:4000"
-      start: cd frontend && npm run start
+      start: cd frontend && node server.js
 
   - setup: api
     build:
       base: nodejs@22
-      buildCommands:
-        - cd backend
-        - npm install
       deployFiles:
         - backend
-        - node_modules
     run:
       base: nodejs@22
       ports:
         - port: 4000
           httpSupport: true
-      envVariables:
-        PORT: "4000"
-        NODE_ENV: "production"
-        DB_HOST: "db"
-        DB_PORT: "5432"
-        DB_USER: "${db_user}"
-        DB_PASS: "${db_password}"
-        DB_NAME: "${db_dbName}"
-        VALKEY_HOST: "cache"
-        VALKEY_PORT: "6379"
-      start: cd backend && node src/server.js
+      start: cd backend && node server.js
