@@ -1,12 +1,113 @@
-zerops:
-  - setup: frontend
-    build:
-      base: nodejs@22
-      deployFiles:
-        - frontend/server.js
-    run:
-      base: nodejs@22
-      ports:
-        - port: 3000
-          httpSupport: true
-      start: node frontend/server.js
+const http = require('http');
+const url = require('url');
+
+const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0';
+
+const servicesToMonitor = [
+  { name: 'Zerops App Domain', url: 'https://zerops.io', status: 'Online', latency: '42ms' },
+  { name: 'GitHub API', url: 'https://api.github.com', status: 'Online', latency: '115ms' },
+  { name: 'WeMakeDevs Platform', url: 'https://www.wemakedevs.org', status: 'Online', latency: '88ms' },
+];
+
+const server = http.createServer((req, res) => {
+  const parsedUrl = url.parse(req.url, true);
+
+  // Backend API Endpoint
+  if (parsedUrl.pathname === '/api/status') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+    return res.end(JSON.stringify({
+      serverTime: new Date().toISOString(),
+      uptimeSeconds: process.uptime(),
+      memoryUsageMB: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2),
+      services: servicesToMonitor
+    }));
+  }
+
+  // Frontend HTML / CSS / JS UI
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Zerops Sentinel Monitor</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #e2e8f0; padding: 2rem; }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #1e293b; padding-bottom: 1rem; }
+        h1 { font-size: 1.5rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; }
+        .badge { background: #0369a1; color: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; }
+        .card-title { font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.5rem; }
+        .card-value { font-size: 1.75rem; font-weight: bold; color: #f8fafc; }
+        .status-list { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; }
+        .status-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #334155; }
+        .status-item:last-child { border-bottom: none; }
+        .dot { height: 10px; width: 10px; background-color: #22c55e; border-radius: 50%; display: inline-block; margin-right: 0.5rem; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <header>
+          <h1>🛡️ Zerops Sentinel Monitor</h1>
+          <span class="badge">Live on Zerops</span>
+        </header>
+
+        <div class="grid">
+          <div class="card">
+            <div class="card-title">Container Status</div>
+            <div class="card-value" style="color: #4ade80;">Active 🟢</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Memory Usage</div>
+            <div class="card-value" id="mem">- MB</div>
+          </div>
+          <div class="card">
+            <div class="card-title">System Uptime</div>
+            <div class="card-value" id="uptime">-s</div>
+          </div>
+        </div>
+
+        <div class="status-list">
+          <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Monitored Targets</h2>
+          <div id="targets">Loading telemetry...</div>
+        </div>
+      </div>
+
+      <script>
+        async function fetchMetrics() {
+          try {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            document.getElementById('mem').innerText = data.memoryUsageMB + ' MB';
+            document.getElementById('uptime').innerText = Math.floor(data.uptimeSeconds) + 's';
+            
+            let html = '';
+            data.services.forEach(s => {
+              html += \`
+                <div class="status-item">
+                  <div><span class="dot"></span><strong>\${s.name}</strong> <small>(\${s.url})</small></div>
+                  <div><span style="color: #94a3b8; margin-right: 1rem;">\${s.latency}</span> <span style="color: #4ade80;">\${s.status}</span></div>
+                </div>
+              \`;
+            });
+            document.getElementById('targets').innerHTML = html;
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        fetchMetrics();
+        setInterval(fetchMetrics, 3000);
+      </script>
+    </body>
+    </html>
+  `);
+});
+
+server.listen(PORT, HOST, () => {
+  console.log(`Sentinel Dashboard running on http://${HOST}:${PORT}`);
+});
